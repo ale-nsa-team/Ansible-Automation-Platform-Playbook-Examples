@@ -51,3 +51,40 @@
         fail_msg: "HTTP access is enabled, which is not allowed."
         success_msg: "HTTP access is not enabled."
       ignore_errors: yes
+
+    - name: Read NTP servers from CSV
+      read_csv:
+        path: "ntp_servers.csv"
+        delimiter: ','
+      register: ntp_servers_csv
+      delegate_to: localhost
+      run_once: true
+
+    - name: Set primary and secondary NTP servers from CSV
+      set_fact:
+        primary_ntp_server: "{{ ntp_servers_csv.list[0]['primary_ntp_server'] }}"
+        secondary_ntp_server: "{{ ntp_servers_csv.list[0]['secondary_ntp_server'] }}"
+
+    - name: Validate NTP Server Configuration
+      block:
+        - name: Check primary NTP server configuration
+          assert:
+            that:
+              - config_output.__backup__ | regex_search("ntp server " + primary_ntp_server + " prefer")
+            fail_msg: "Primary NTP server not configured correctly."
+            success_msg: "Primary NTP server is configured correctly."
+        
+        - name: Check secondary NTP server configuration
+          assert:
+            that:
+              - config_output.__backup__ | regex_search("ntp server " + secondary_ntp_server)
+            fail_msg: "Secondary NTP server not configured correctly."
+            success_msg: "Secondary NTP server is configured correctly."
+        
+        - name: Validate switch as NTP client
+          assert:
+            that:
+              - config_output.__backup__ | regex_search("ntp client admin-state enable")
+            fail_msg: "NTP client not configured correctly."
+            success_msg: "NTP client is configured correctly."
+      ignore_errors: yes
