@@ -1,0 +1,2 @@
+primary_ntp_server,secondary_ntp_server
+time.google.com,10.100.100.254
