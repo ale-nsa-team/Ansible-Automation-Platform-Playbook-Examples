@@ -1,0 +1,53 @@
+---
+- name: Compliance Checks
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Get Config
+      ale.aos8.aos8_config:
+        backup: yes
+      register: config_output
+
+    - name: Print Config Output
+      debug:
+        msg: "{{ config_output.__backup__ }}"
+
+    - name: "Validate external authentication server"
+      assert:
+        that:
+          - config_output.__backup__ | regex_search("aaa radius-server .* host [0-9.]+")
+        fail_msg: "External authentication server not configured correctly."
+        success_msg: "External authentication server is configured correctly."
+      ignore_errors: yes
+
+    - name: "Validate AAA authentication for management interfaces"
+      assert:
+        that:
+          - config_output.__backup__ | regex_search('aaa authentication (ssh|console|snmp|default) \"local\"')
+        fail_msg: "AAA authentication for management interfaces is not configured correctly."
+        success_msg: "AAA authentication for management interfaces is configured correctly."
+      ignore_errors: yes
+
+    - name: "Validate Telnet access is not enabled"
+      assert:
+        that:
+          - config_output.__backup__ | regex_search("aaa authentication telnet") is none
+        fail_msg: "Telnet access is enabled, which is not allowed."
+        success_msg: "Telnet access is not enabled."
+      ignore_errors: yes
+
+    - name: "Validate FTP access is not enabled"
+      assert:
+        that:
+          - config_output.__backup__ | regex_search("aaa authentication ftp")  is none
+        fail_msg: "FTP access is enabled, which is not allowed."
+        success_msg: "FTP access is not enabled."
+      ignore_errors: yes
+
+    - name: "Validate HTTP access is not enabled"
+      assert:
+        that:
+          - config_output.__backup__ | regex_search("aaa authentication http") is none
+        fail_msg: "HTTP access is enabled, which is not allowed."
+        success_msg: "HTTP access is not enabled."
+      ignore_errors: yes
