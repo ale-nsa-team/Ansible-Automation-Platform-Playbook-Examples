@@ -1,0 +1,47 @@
+---
+- name: Configure VLAN and Layer 3 interfaces on switches
+  hosts: all
+  gather_facts: no
+
+  vars:
+    ansible_command_timeout: 300
+
+  tasks:
+    - name: Create VLAN
+      ale.aos8.aos8_vlans:
+        config:
+          - vlan_id: "{{ VLAN_ID }}"
+            name: "{{ VLAN_NAME }}"
+        state: merged
+
+    - name: Add port as untagged
+      ale.aos8.aos8_l2_interfaces:
+        config:
+          - vlan_id: "{{ VLAN_ID }}"
+            port_type: port
+            port_number: "{{ PORT_ID }}"
+            mode: untagged
+        state: merged
+
+    - name: Read IP and subnet mask from CSV
+      read_csv:
+        path: "ipam.csv"
+        delimiter: ','
+      register: ipam_csv
+      delegate_to: localhost
+      run_once: true
+
+    - name: Set IP and subnet mask from CSV for each switch
+      set_fact:
+        switch_ip: "{{ ipam_csv.list | selectattr('switch_name', 'equalto', inventory_hostname) | map(attribute='ip_address') | first }}"
+        switch_mask: "{{ ipam_csv.list | selectattr('switch_name', 'equalto', inventory_hostname) | map(attribute='subnet_mask') | first }}"
+
+    - name: Configure Layer 3 IP interfaces for each switch
+      ale.aos8.aos8_l3_interfaces:
+        config:
+          - name: "VLAN_{{ VLAN_ID }}"
+            address: "{{ switch_ip }}"
+            type: vlan
+            mask: "{{ switch_mask }}"
+            port_id: "{{ VLAN_ID }}"
+        state: merged
