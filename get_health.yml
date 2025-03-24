@@ -25,7 +25,7 @@
 
     - name: Display Memory Usage in green if below or equal 45%
       debug:
-        msg: "Current Memory Usage: {{ memory_usage }}"
+        msg: "Current Memory Usage: {{ memory_usage }}%"
       when: memory_usage | int <= 45
 
     - name: Display Memory Usage in red if above 45%
