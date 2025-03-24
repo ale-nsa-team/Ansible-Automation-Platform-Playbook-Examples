@@ -28,4 +28,4 @@
             port_number: "{{ INTERFACE_ID }}"
             mode: untagged
         state: merged
-        delegate_to: "{{ SWITCH_NAME }}"
+      delegate_to: "{{ SWITCH_NAME }}"
