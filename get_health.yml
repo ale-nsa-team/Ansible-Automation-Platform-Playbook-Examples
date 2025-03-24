@@ -10,8 +10,8 @@
 
     - name: Extract CPU and Memory Usage
       set_fact:
-        cpu_usage: "{{ health_output.stdout[0] | regex_search('CPU\\s+(\\d+)', '\\1') | first }}"
-        memory_usage: "{{ health_output.stdout[0] | regex_search('Memory\\s+(\\d+)', '\\1') | first }}"
+        cpu_usage: "{{ health_output.stdout[0] | regex_search('CPU\\s+(\\d+)', '\\1') | first | int }}"
+        memory_usage: "{{ health_output.stdout[0] | regex_search('Memory\\s+(\\d+)', '\\1') | first | int }}"
 
     - name: Display CPU Usage in green if below or equal 50%
       debug:
