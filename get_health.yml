@@ -10,29 +10,25 @@
 
     - name: Extract CPU and Memory Usage
       set_fact:
-        cpu_usage: "{{ health_output.stdout[0] | regex_search('CPU\\s+(\\d+)', '\\1') | first | int }}"
-        memory_usage: "{{ health_output.stdout[0] | regex_search('Memory\\s+(\\d+)', '\\1') | first | int }}"
+        cpu_usage: "{{ health_output.stdout[0] | regex_search('CPU\\s+(\\d+)', '\\1') | first }}"
+        memory_usage: "{{ health_output.stdout[0] | regex_search('Memory\\s+(\\d+)', '\\1') | first }}"
 
-    - name: Display CPU and Memory Usage
+    - name: Display CPU Usage in green if below or equal 45%
       debug:
-        msg: "Current CPU Usage: {{ cpu_usage }}%, Current Memory Usage: {{ memory_usage }}%"
+        msg: "Current CPU Usage: {{ cpu_usage }}%"
+      when: cpu_usage | int <= 45
 
-    - name: Display CPU Usage in green if below or equal 50%
-      debug:
-        msg: "Current CPU Usage: {{ cpu_usage }}"
-      when: cpu_usage | int <= 50
-
-    - name: Display CPU Usage in red if above 50%
+    - name: Display CPU Usage in red if above 45%
       debug:
         msg: "\033[91mCurrent CPU Usage: {{ cpu_usage }}%\033[0m"
-      when: cpu_usage | int > 50
+      when: cpu_usage | int > 45
 
-    - name: Display Memory Usage in green if below or equal 50%
+    - name: Display Memory Usage in green if below or equal 45%
       debug:
         msg: "Current Memory Usage: {{ memory_usage }}"
-      when: memory_usage | int <= 50
+      when: memory_usage | int <= 45
 
-    - name: Display Memory Usage in red if above 50%
+    - name: Display Memory Usage in red if above 45%
       debug:
         msg: "\033[91mCurrent Memory Usage: {{ memory_usage }}%\033[0m"
-      when: memory_usage | int > 50
+      when: memory_usage | int > 45
