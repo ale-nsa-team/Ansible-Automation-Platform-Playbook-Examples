@@ -2,6 +2,12 @@
 - name: Compliance Checks
   hosts: all
   gather_facts: no
+
+  vars:
+    ansible_ssh_user: '{{ lookup("env", "ANSIBLE_NET_USERNAME") }}'
+    ansible_ssh_pass: '{{ lookup("env", "ANSIBLE_NET_PASSWORD") }}'
+    ansible_command_timeout: 300
+  
   tasks:
     - name: Get Config
       ale.aos8.aos8_config:
