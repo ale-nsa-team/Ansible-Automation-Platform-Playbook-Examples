@@ -19,9 +19,10 @@
       when: cpu_usage | int <= 45
 
     - name: Display CPU Usage in red if above 45%
-      debug:
-        msg: "\033[91mCurrent CPU Usage: {{ cpu_usage }}%\033[0m"
+      fail:
+        msg: "Current CPU Usage: {{ cpu_usage }}%"
       when: cpu_usage | int > 45
+      ignore_errors: yes
 
     - name: Display Memory Usage in green if below or equal 45%
       debug:
@@ -29,6 +30,7 @@
       when: memory_usage | int <= 45
 
     - name: Display Memory Usage in red if above 45%
-      debug:
-        msg: "\033[91mCurrent Memory Usage: {{ memory_usage }}%\033[0m"
+      fail:
+        msg: "Current Memory Usage: {{ memory_usage }}%"
       when: memory_usage | int > 45
+      ignore_errors: yes
