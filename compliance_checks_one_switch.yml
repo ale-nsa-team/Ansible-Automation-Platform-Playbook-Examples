@@ -1,0 +1,96 @@
+---
+- name: Compliance Checks
+  hosts: "{{ SWITCH_NAME }}"
+  gather_facts: no
+
+  vars:
+    ansible_ssh_user: '{{ lookup("env", "ANSIBLE_NET_USERNAME") }}'
+    ansible_ssh_pass: '{{ lookup("env", "ANSIBLE_NET_PASSWORD") }}'
+    ansible_command_timeout: 300
+  
+  tasks:
+    - name: Get Config
+      ale.aos8.aos8_config:
+        backup: yes
+      register: config_output
+
+    - name: Print Config Output
+      debug:
+        msg: "{{ config_output.__backup__ }}"
+
+    - name: "Validate external authentication server"
+      assert:
+        that:
+          - config_output.__backup__ | regex_search("aaa radius-server .* host [0-9.]+")
+        fail_msg: "External authentication server not configured correctly."
+        success_msg: "External authentication server is configured correctly."
+      ignore_errors: yes
+
+    - name: "Validate AAA authentication for management interfaces"
+      assert:
+        that:
+          - config_output.__backup__ | regex_search('aaa authentication (ssh|console|snmp|default) \"local\"')
+        fail_msg: "AAA authentication for management interfaces is not configured correctly."
+        success_msg: "AAA authentication for management interfaces is configured correctly."
+      ignore_errors: yes
+
+    - name: "Validate Telnet access is not enabled"
+      assert:
+        that:
+          - config_output.__backup__ | regex_search("aaa authentication telnet") is none
+        fail_msg: "Telnet access is enabled, which is not allowed."
+        success_msg: "Telnet access is not enabled."
+      ignore_errors: yes
+
+    - name: "Validate FTP access is not enabled"
+      assert:
+        that:
+          - config_output.__backup__ | regex_search("aaa authentication ftp")  is none
+        fail_msg: "FTP access is enabled, which is not allowed."
+        success_msg: "FTP access is not enabled."
+      ignore_errors: yes
+
+    - name: "Validate HTTP access is not enabled"
+      assert:
+        that:
+          - config_output.__backup__ | regex_search("aaa authentication http") is none
+        fail_msg: "HTTP access is enabled, which is not allowed."
+        success_msg: "HTTP access is not enabled."
+      ignore_errors: yes
+
+    - name: Read NTP servers from CSV
+      read_csv:
+        path: "ntp_servers.csv"
+        delimiter: ','
+      register: ntp_servers_csv
+      delegate_to: localhost
+      run_once: true
+
+    - name: Set primary and secondary NTP servers from CSV
+      set_fact:
+        primary_ntp_server: "{{ ntp_servers_csv.list[0]['primary_ntp_server'] }}"
+        secondary_ntp_server: "{{ ntp_servers_csv.list[0]['secondary_ntp_server'] }}"
+
+    - name: Validate NTP Server Configuration
+      block:
+        - name: Check primary NTP server configuration
+          assert:
+            that:
+              - config_output.__backup__ | regex_search("ntp server " + primary_ntp_server + " prefer")
+            fail_msg: "Primary NTP server not configured correctly."
+            success_msg: "Primary NTP server is configured correctly."
+        
+        - name: Check secondary NTP server configuration
+          assert:
+            that:
+              - config_output.__backup__ | regex_search("ntp server " + secondary_ntp_server)
+            fail_msg: "Secondary NTP server not configured correctly."
+            success_msg: "Secondary NTP server is configured correctly."
+        
+        - name: Validate switch as NTP client
+          assert:
+            that:
+              - config_output.__backup__ | regex_search("ntp client admin-state enable")
+            fail_msg: "NTP client not configured correctly."
+            success_msg: "NTP client is configured correctly."
+      ignore_errors: yes
