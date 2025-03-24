@@ -1,0 +1,29 @@
+---
+- name: Modify VLAN on interface
+  hosts: "{{ SWITCH_NAME }}"
+  gather_facts: no
+
+  vars:
+    ansible_command_timeout: 300
+
+  tasks:
+    - name: Read interface
+      read_csv:
+        path: "faceplate.csv"
+        delimiter: ','
+      register: faceplate_csv
+      delegate_to: localhost
+      run_once: true
+
+    - name: Set interface from CSV based on FACEPLATE_ID
+      set_fact:
+        INTERFACE_ID: "{{ faceplate_csv.list | selectattr('faceplate', 'equalto', FACEPLATE_ID | string) | map(attribute='interface') | first }}"
+
+    - name: Add port as untagged
+      ale.aos8.aos8_l2_interfaces:
+        config:
+          - vlan_id: "{{ VLAN_ID }}"
+            port_type: port
+            port_number: "{{ INTERFACE_ID }}"
+            mode: untagged
+        state: merged
